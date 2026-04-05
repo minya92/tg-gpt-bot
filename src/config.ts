@@ -50,6 +50,6 @@ export function loadConfig(): AppConfig {
     contextLimitMessages: parsePositiveInt(process.env.CONTEXT_LIMIT_MESSAGES, 20),
     systemPrompt: loadSystemPrompt(systemPromptFilePath),
     storeFilePath: path.resolve(process.env.STORE_FILE_PATH?.trim() || './store.json'),
-    port: parsePositiveInt(process.env.PORT, 3000)
+    port: parsePositiveInt(process.env.PORT, 3005)
   };
 }

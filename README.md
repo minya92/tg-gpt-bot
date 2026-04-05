@@ -61,7 +61,7 @@ DEFAULT_MODEL=openai/gpt-4o-mini
 CONTEXT_LIMIT_MESSAGES=20
 SYSTEM_PROMPT_FILE_PATH=./src/SYSTEM.md
 STORE_FILE_PATH=./data/store.json
-PORT=3000
+PORT=3005
 ```
 
 Notes:
@@ -94,7 +94,7 @@ docker compose up -d --build
 
 The bot uses long polling by default.
 Health endpoint is available at:
-- `GET /health` on port `3000` (configurable via `PORT`)
+- `GET /health` on port `3005` (configurable via `PORT`)
 
 ## Scripts
 

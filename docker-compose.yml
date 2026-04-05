@@ -1,0 +1,12 @@
+services:
+  bot:
+    build: .
+    container_name: tg-gpt-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "3000:3000"
+    command: npm start

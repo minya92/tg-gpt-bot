@@ -30,9 +30,11 @@ async function renderChunks(
   state: StreamRenderState,
   text: string,
   maxLength: number,
-  formatter: (plainText: string) => string
+  formatter: (plainText: string) => string,
+  preprocess: (plainText: string) => string
 ): Promise<void> {
-  const chunks = splitTelegramText(text || '…', maxLength).map((chunk) => formatter(chunk));
+  const preprocessedText = preprocess(text || '…');
+  const chunks = splitTelegramText(preprocessedText || '…', maxLength).map((chunk) => formatter(chunk));
 
   for (let i = 0; i < chunks.length; i += 1) {
     const chunk = chunks[i];
@@ -63,11 +65,13 @@ export async function streamTextToTelegram(
     maxLength?: number;
     flushIntervalMs?: number;
     formatter?: (plainText: string) => string;
+    preprocess?: (plainText: string) => string;
   }
 ): Promise<string> {
   const maxLength = options?.maxLength ?? TELEGRAM_SAFE_TEXT_LIMIT;
   const flushIntervalMs = options?.flushIntervalMs ?? 900;
   const formatter = options?.formatter ?? escapeHtml;
+  const preprocess = options?.preprocess ?? ((plainText: string) => plainText);
 
   const firstMessage = await ctx.reply('…', {
     parse_mode: 'HTML'
@@ -93,11 +97,18 @@ export async function streamTextToTelegram(
       const now = Date.now();
       if (now - lastFlushAt >= flushIntervalMs) {
         lastFlushAt = now;
-        await renderChunks(ctx, state, fullText, maxLength, formatter);
+        await renderChunks(ctx, state, fullText, maxLength, formatter, preprocess);
       }
     }
 
-    await renderChunks(ctx, state, fullText || 'Пустой ответ модели.', maxLength, formatter);
+    await renderChunks(
+      ctx,
+      state,
+      fullText || 'Пустой ответ модели.',
+      maxLength,
+      formatter,
+      preprocess
+    );
   } finally {
     clearInterval(typingInterval);
   }

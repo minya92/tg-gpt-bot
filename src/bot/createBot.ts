@@ -7,7 +7,7 @@ import { isAllowedUser } from '../utils/allowedUsers';
 import { filterModels, isModelAllowed } from '../utils/modelValidation';
 import { replyPlainHtml } from '../utils/telegram';
 import { streamTextToTelegram } from '../services/telegramStreaming';
-import { renderModelTextToTelegramHtml } from '../utils/telegramFormat';
+import { convertMarkdownTablesToPseudo, renderModelTextToTelegramHtml } from '../utils/telegramFormat';
 
 interface CreateBotDeps {
   stateService: AppStateService;
@@ -220,6 +220,7 @@ export function createBot(config: AppConfig, deps: CreateBotDeps): Telegraf<Cont
             messages
           }),
           {
+            preprocess: convertMarkdownTablesToPseudo,
             formatter: renderModelTextToTelegramHtml
           }
         );

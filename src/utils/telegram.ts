@@ -3,6 +3,36 @@ import { escapeHtml } from './html';
 
 export const TELEGRAM_SAFE_TEXT_LIMIT = 3500;
 
+interface TelegramCallApi {
+  callApi(method: string, payload: Record<string, unknown>): Promise<unknown>;
+}
+
+interface TelegramSentMessage {
+  message_id: number;
+}
+
+export interface InputRichMarkdownMessage {
+  markdown: string;
+}
+
+function getChatId(ctx: Context): number | string {
+  if (!ctx.chat) {
+    throw new Error('Telegram chat is not available in context.');
+  }
+
+  return ctx.chat.id;
+}
+
+function getTelegramApi(ctx: Context): TelegramCallApi {
+  return ctx.telegram as unknown as TelegramCallApi;
+}
+
+export function buildInputRichMarkdown(markdown: string): InputRichMarkdownMessage {
+  return {
+    markdown: markdown || '…'
+  };
+}
+
 // Безопасно делит длинный текст для отправки в Telegram.
 export function splitTelegramText(text: string, maxLength = TELEGRAM_SAFE_TEXT_LIMIT): string[] {
   if (!text) {
@@ -53,4 +83,28 @@ export async function replyPlainHtml(ctx: Context, plainText: string): Promise<v
       parse_mode: 'HTML'
     });
   }
+}
+
+export async function sendRichMarkdown(
+  ctx: Context,
+  markdown: string
+): Promise<TelegramSentMessage> {
+  const message = await getTelegramApi(ctx).callApi('sendRichMessage', {
+    chat_id: getChatId(ctx),
+    rich_message: buildInputRichMarkdown(markdown)
+  });
+
+  return message as TelegramSentMessage;
+}
+
+export async function editRichMarkdown(
+  ctx: Context,
+  messageId: number,
+  markdown: string
+): Promise<void> {
+  await getTelegramApi(ctx).callApi('editMessageText', {
+    chat_id: getChatId(ctx),
+    message_id: messageId,
+    rich_message: buildInputRichMarkdown(markdown)
+  });
 }

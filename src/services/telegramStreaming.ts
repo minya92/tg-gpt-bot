@@ -1,21 +1,19 @@
 import { Context } from 'telegraf';
-import { escapeHtml } from '../utils/html';
-import { splitTelegramText, TELEGRAM_SAFE_TEXT_LIMIT } from '../utils/telegram';
+import {
+  editRichMarkdown,
+  sendRichMarkdown,
+  splitTelegramText,
+  TELEGRAM_SAFE_TEXT_LIMIT
+} from '../utils/telegram';
 
 interface StreamRenderState {
   messageIds: number[];
   renderedChunks: string[];
 }
 
-async function safeEditMessage(
-  ctx: Context,
-  messageId: number,
-  htmlText: string
-): Promise<void> {
+async function safeEditMessage(ctx: Context, messageId: number, markdown: string): Promise<void> {
   try {
-    await ctx.telegram.editMessageText(ctx.chat!.id, messageId, undefined, htmlText, {
-      parse_mode: 'HTML'
-    });
+    await editRichMarkdown(ctx, messageId, markdown);
   } catch (error) {
     const telegramError = error as { description?: string };
     if (telegramError.description?.includes('message is not modified')) {
@@ -29,12 +27,9 @@ async function renderChunks(
   ctx: Context,
   state: StreamRenderState,
   text: string,
-  maxLength: number,
-  formatter: (plainText: string) => string,
-  preprocess: (plainText: string) => string
+  maxLength: number
 ): Promise<void> {
-  const preprocessedText = preprocess(text || '…');
-  const chunks = splitTelegramText(preprocessedText || '…', maxLength).map((chunk) => formatter(chunk));
+  const chunks = splitTelegramText(text || '…', maxLength);
 
   for (let i = 0; i < chunks.length; i += 1) {
     const chunk = chunks[i];
@@ -48,9 +43,7 @@ async function renderChunks(
       continue;
     }
 
-    const message = await ctx.reply(escapeHtml(chunk), {
-      parse_mode: 'HTML'
-    });
+    const message = await sendRichMarkdown(ctx, chunk);
     state.messageIds.push(message.message_id);
   }
 
@@ -64,18 +57,12 @@ export async function streamTextToTelegram(
   options?: {
     maxLength?: number;
     flushIntervalMs?: number;
-    formatter?: (plainText: string) => string;
-    preprocess?: (plainText: string) => string;
   }
 ): Promise<string> {
   const maxLength = options?.maxLength ?? TELEGRAM_SAFE_TEXT_LIMIT;
   const flushIntervalMs = options?.flushIntervalMs ?? 900;
-  const formatter = options?.formatter ?? escapeHtml;
-  const preprocess = options?.preprocess ?? ((plainText: string) => plainText);
 
-  const firstMessage = await ctx.reply('…', {
-    parse_mode: 'HTML'
-  });
+  const firstMessage = await sendRichMarkdown(ctx, '…');
 
   const state: StreamRenderState = {
     messageIds: [firstMessage.message_id],
@@ -97,18 +84,11 @@ export async function streamTextToTelegram(
       const now = Date.now();
       if (now - lastFlushAt >= flushIntervalMs) {
         lastFlushAt = now;
-        await renderChunks(ctx, state, fullText, maxLength, formatter, preprocess);
+        await renderChunks(ctx, state, fullText, maxLength);
       }
     }
 
-    await renderChunks(
-      ctx,
-      state,
-      fullText || 'Пустой ответ модели.',
-      maxLength,
-      formatter,
-      preprocess
-    );
+    await renderChunks(ctx, state, fullText || 'Пустой ответ модели.', maxLength);
   } finally {
     clearInterval(typingInterval);
   }

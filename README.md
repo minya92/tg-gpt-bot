@@ -21,8 +21,8 @@ Production-ready Telegram chatbot on **Node.js + TypeScript** with:
   - typing action
   - progressive `editMessageText`
   - continuation in additional messages when text is too long
-- HTML parse mode for Telegram messages
-- Safe HTML escaping
+- Native Telegram Rich Markdown for model responses, including GitHub-style tables
+- Safe HTML escaping for plain service messages
 - Safe long text splitting for Telegram limits
 - Persistent storage for model + sessions
 - Graceful handling of missing/corrupted JSON store
@@ -90,6 +90,14 @@ Run with Docker Compose:
 
 ```bash
 docker compose up -d --build
+```
+
+Restart on VPS after updating the repository:
+
+```bash
+docker compose down
+docker compose up -d --build
+docker compose logs -f
 ```
 
 The bot uses long polling by default.
